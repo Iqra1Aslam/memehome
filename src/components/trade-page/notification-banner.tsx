@@ -166,7 +166,7 @@ const NotificationBanner: React.FC = () => {
     >
       <div className="flex items-center justify-between gap-2 w-full">
         <div className="flex items-center space-x-1">
-          <Sparkles className="w-4 h-4 text-purple-300" />
+          {/* <Sparkles className="w-4 h-4 text-purple-300" /> */}
           {/* <span className="font-semibold text-xs text-purple-100">Trade:</span> */}
           <span className="text-xs truncate">
             <span className="font-medium text-purple-200">
