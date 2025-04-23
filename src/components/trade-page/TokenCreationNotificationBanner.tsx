@@ -138,14 +138,14 @@ const TokenCreationNotificationBanner: React.FC = () => {
       initial="initial"
       animate="animate"
       exit="exit"
-      className="max-w-[400px] w-full h-10 bg-gradient-to-r from-green-500/20 to-teal-500/20 backdrop-blur-sm text-white py-2 px-3 rounded-lg border border-green-500/40 shadow-lg shadow-green-500/10 flex-shrink-0 flex items-center"
+      className="max-w-[220px] w-full h-10 bg-gradient-to-r from-green-500/20 to-teal-500/20 backdrop-blur-sm text-white py-2 px-3 rounded-lg border border-green-500/40 shadow-lg shadow-green-500/10 flex-shrink-0 flex items-center"
     >
       <div className="flex items-center justify-between gap-2 w-full">
         <div className="flex items-center space-x-1">
-          <Sparkles className="w-4 h-4 text-green-300" />
-          <span className="font-semibold text-xs text-green-100">
+          {/* <Sparkles className="w-4 h-4 text-green-300" /> */}
+          {/* <span className="font-semibold text-xs text-green-100">
             New Token:
-          </span>
+          </span> */}
           <span className="text-xs text-green-200 truncate">
             {lastTokenCreation.message}
           </span>
