@@ -88,7 +88,9 @@ const NotificationBanner: React.FC = () => {
   useEffect(() => {
     const fetchTradeSuccesses = async () => {
       try {
-        const response = await axios.get("http://localhost:8000/coin/api/trade-success");
+        const response = await axios.get(
+          "http://localhost:8000/coin/api/trade-success"
+        );
         const tradeSuccesses = response.data.tradeSuccesses || [];
         if (tradeSuccesses.length > 0) {
           const latestTrade = tradeSuccesses[0];
@@ -148,7 +150,9 @@ const NotificationBanner: React.FC = () => {
   const displayAmount = formatAmount(lastTrade.amount);
   const parsedMarketCap = parseMarketCap(lastTrade.marketCap);
   const effectivePrice = solPrice > 0 ? solPrice : 1;
-  const adjustedMarketCap = ((parsedMarketCap * effectivePrice) / 1000).toFixed(4);
+  const adjustedMarketCap = ((parsedMarketCap * effectivePrice) / 1000).toFixed(
+    2
+  );
   const displayMarketCap = `$${adjustedMarketCap}K`;
 
   return (
@@ -163,7 +167,7 @@ const NotificationBanner: React.FC = () => {
       <div className="flex items-center justify-between gap-2 w-full">
         <div className="flex items-center space-x-1">
           <Sparkles className="w-4 h-4 text-purple-300" />
-          <span className="font-semibold text-xs text-purple-100">Trade:</span>
+          {/* <span className="font-semibold text-xs text-purple-100">Trade:</span> */}
           <span className="text-xs truncate">
             <span className="font-medium text-purple-200">
               {lastTrade.tradeType === "bought" ? "Bought" : "Sold"}
