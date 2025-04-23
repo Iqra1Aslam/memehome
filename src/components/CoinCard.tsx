@@ -31,6 +31,13 @@ const CoinCard: React.FC<CoinCardProps> = ({ coin, onTradeClick, price }) => {
   const timeAgo = getTimeAgo(coin.date);
   console.log("coin: ", coin.marketCap);
 
+  // Optional: Programmatically truncate description to a max length
+  const maxDescriptionLength = 50;
+  const truncatedDescription =
+    coin.description.length > maxDescriptionLength
+      ? `${coin.description.slice(0, maxDescriptionLength)}...`
+      : coin.description;
+
   return (
     <div
       onClick={onTradeClick}
@@ -55,13 +62,15 @@ const CoinCard: React.FC<CoinCardProps> = ({ coin, onTradeClick, price }) => {
             ${((coin.marketCap * (price ?? 164.91)) / 1000).toFixed(2)}K
           </span>
         </div>
-{/* Description and Created time stacked below the name */}
-<div className="flex flex-col items-start">  {/* Changed this line */}
-  <p className="text-gray-400 text-xs truncate text-left">{coin.description}</p>
-  <div className="text-gray-400 text-xs mt-0.5 text-left">
-    Created {timeAgo}
-  </div>
-</div>
+        {/* Description and Created time stacked below the name */}
+        <div className="flex flex-col items-start w-full">
+          <p className="text-gray-400 text-xs truncate w-full text-left">
+            {truncatedDescription}
+          </p>
+          <div className="text-gray-400 text-xs mt-0.5 text-left">
+            Created {timeAgo}
+          </div>
+        </div>
       </div>
     </div>
   );
