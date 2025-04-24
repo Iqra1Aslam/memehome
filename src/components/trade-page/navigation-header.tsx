@@ -1,30 +1,56 @@
+
 "use client";
 
 import type React from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
-
+import axios from "axios";
+import { ably } from "../../utils/ablyClient";
+import { useState, useEffect } from "react";
+import CoinCard from "../CoinCard";
 interface NavigationHeaderProps {
   onBack: () => void;
   tokenName: string;
   tokenSymbol: string;
   marketCap: number;
+  token: string;
   price?: number | null; // Optional price prop
 }
-
 
 const NavigationHeader: React.FC<NavigationHeaderProps> = ({
   onBack,
   tokenName,
   tokenSymbol,
   marketCap,
+  token,
   price,
 }) => {
   // Use provided price if available, otherwise fallback to 164.91
   const effectivePrice = price ?? 164.91;
   console.log("price from navigation: ", price);
   console.log("effectivePrice: ", effectivePrice);
+  const URL = process.env.VITE_API_URL || "http://localhost:8000/";
+  const [replyCount, setReplyCount] = useState<number>(0);
 
+  useEffect(() => {
+    const fetchReplyCount = async () => {
+      try {
+        const response = await axios.get(`${URL}coin/reply-count/${token}`);
+        setReplyCount(response.data.replyCount);
+      } catch (error) {
+        console.error("Error fetching reply count:", error);
+      }
+    };
+
+    fetchReplyCount();
+    const channel = ably.channels.get(`reply-count-${token}`);
+    channel.subscribe("reply-count", (message) => {
+      setReplyCount(message.data.replyCount);
+    });
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [token]);
   // Calculate formatted market cap
   const formattedMarketCap = `$${((marketCap * effectivePrice) / 1000).toFixed(
     2
@@ -61,7 +87,7 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
         </div>
         <div className="flex items-center space-x-2">
           <span className="text-gray-400">replies:</span>
-          <span className="text-white font-semibold">382</span>
+          <span className="text-white font-semibold">{replyCount}</span>
         </div>
       </div>
     </div>
