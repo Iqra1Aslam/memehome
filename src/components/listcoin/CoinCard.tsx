@@ -1,12 +1,15 @@
+
 import React from "react";
 import { motion } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
-
+import { useState, useEffect, useRef } from "react";
+import axios from "axios";
 const getTimeAgo = (dateString: string) => {
   const date = new Date(dateString);
   return formatDistanceToNow(date, { addSuffix: true });
 };
 
+import { ably } from "../../utils/ablyClient";
 interface Coin {
   _id: string;
   name: string;
@@ -25,6 +28,7 @@ interface CoinCardProps {
   onTradeClick: () => void;
   price: number | null;
   isShuffling: boolean;
+  replyCount?: number;
 }
 
 const CoinCard: React.FC<CoinCardProps> = ({
@@ -33,6 +37,33 @@ const CoinCard: React.FC<CoinCardProps> = ({
   price,
   isShuffling,
 }) => {
+  const URL = process.env.VITE_API_URL || "http://localhost:8000/";
+  const [replyCount, setReplyCount] = useState<number>(0);
+
+  // Fetch the reply count from localStorage when the component mounts
+  useEffect(() => {
+    const fetchReplyCount = async () => {
+      try {
+        const response = await axios.get(
+          `${URL}coin/reply-count/${coin.token}`
+        );
+        setReplyCount(response.data.replyCount);
+      } catch (error) {
+        console.error("Error fetching reply count:", error);
+      }
+    };
+
+    fetchReplyCount();
+    const channel = ably.channels.get(`reply-count-${coin.token}`);
+
+    channel.subscribe("reply-count", (message) => {
+      setReplyCount(message.data.replyCount);
+      //   }
+    });
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [coin.token]);
   const truncateCreator = (wallet: string, maxLength: number = 30) => {
     if (!wallet) return "Unknown Creator";
     if (wallet.length <= maxLength) return wallet;
@@ -69,7 +100,7 @@ const CoinCard: React.FC<CoinCardProps> = ({
       initial="initial"
       animate="animate"
       exit="exit"
-      
+ 
       variants={cardVariants}
       custom={isShuffling}
       className={`group relative rounded-xl overflow-hidden w-full border ${
@@ -106,6 +137,10 @@ const CoinCard: React.FC<CoinCardProps> = ({
               ${((coin.marketCap * (price ?? 164.91)) / 1000).toFixed(2)}K
             </span>
           </div>
+
+          <p className="text-white/80 text-xs mb-3 break-words">
+            replies: <span>{replyCount || 0}</span>
+          </p>
 
           <p className="text-white/80 text-xs mb-3 break-words">
             {coin.description}
