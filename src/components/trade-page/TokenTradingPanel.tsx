@@ -33,7 +33,7 @@ import { PresetButtons } from "./PresetButtons";
 import { TradeButton } from "./TradeButton";
 import { ProgressBar } from "./ProgressBar";
 import { HoldersList } from "./HoldersList";
-import { io } from "socket.io-client";
+// import { io } from "socket.io-client";
 import { channel } from "../../utils/ablyClient";
 // const socket = io("https://server.memehome.io", {
 
@@ -131,7 +131,7 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
   const [isCurveCompleted, setIsCurveCompleted] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [isCopied, setIsCopied] = useState(false); // State to track if text is copied
-  const [msg, setMsg] = useState("");
+  const [msg, setMsg] = useState<number>(0);
   const [marketCap, setMarketCap] = useState<string>(
     tokenData.marketCap || "$0"
   );
@@ -191,10 +191,10 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
   const fetchTokenPrice = async () => {
     try {
       if (!tokenData.bondingCurve) return;
-      const bid= tokenData.bondingCurve;
+      const bid = tokenData.bondingCurve;
       // const price = await eachTokenPrice(tokenData.bondingCurve);
-      const res=  await axios.get(`${URL}coin/token-price/${bid}`);
-      const price= res.data.price;
+      const res = await axios.get(`${URL}coin/token-price/${bid}`);
+      const price = res.data.price;
       setTokenPrice(price);
       console.log("tokenData.bondingCurve price", price);
     } catch (error) {
@@ -202,11 +202,10 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
     }
   };
   channel.subscribe("priceUpdate", (message) => {
-    console.log("token updated bondingCurve price",message.data);
+    console.log("token updated bondingCurve price", message.data);
     setTokenPrice(message.data.price);
   });
- 
- 
+
   // channel.unsubscribe('coin-price', onMessage);
   useEffect(() => {
     fetchTokenPrice();
@@ -218,16 +217,16 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
   const postPrice = async () => {
     try {
       if (!tokenData.bondingCurve) return marketCap;
-      const bid= tokenData.bondingCurve;
-   
-      const ress=  await axios.get(`${URL}coin/token-price/${bid}`);
-      const updatedPrice= ress.data.price;
+      const bid = tokenData.bondingCurve;
+
+      const ress = await axios.get(`${URL}coin/token-price/${bid}`);
+      const updatedPrice = ress.data.price;
       setTokenPrice(updatedPrice);
-      const res=await axios.post(`${URL}coin/api/price`, {
+      const res = await axios.post(`${URL}coin/api/price`, {
         price: updatedPrice,
         bondingCurve: tokenData.bondingCurve,
       });
-      console.log("updataed price data",res.data);
+      console.log("updataed price data", res.data);
       const totalSupply = 800_000_000;
       const calculatedMarketCap =
         (updatedPrice * totalSupply) / LAMPORTS_PER_SOL;
@@ -239,10 +238,10 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
         }
       )}k`;
       setMarketCap(formattedMarketCap);
-   
+
       // const newChartData = await fetchOHLCData();
       // onChartDataUpdate(newChartData);
- 
+
       return formattedMarketCap;
     } catch (error) {
       console.error("Error posting updated price to backend:", error);
@@ -250,17 +249,137 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
     }
   };
 
+  // const fetchData = async () => {
+  //   try {
+  //     setIsLoading(true);
+
+  //     if (publicKey) {
+  //       const balanceLamports = await connection.getBalance(publicKey);
+  //       setBalance(balanceLamports / LAMPORTS_PER_SOL);
+  //       const tokenBal = await getTokenBalance(
+  //         publicKey.toBase58(),
+  //         tokenData.token || ""
+  //       );
+  //       setTokenBalance(tokenBal || 0);
+  //     } else {
+  //       setBalance(0);
+  //       setTokenBalance(0);
+  //     }
+  //     if (tokenData.bondingCurve && tokenData.token) {
+  //       const totalSupply = 800_000_000;
+  //       const bondingCurveBalance = await getRealTokenReserves(
+  //         tokenData.bondingCurve
+  //       );
+
+  //       console.log(
+  //         "realTokenReserves:",
+  //         bondingCurveBalance,
+  //         "curveLimit:",
+  //         totalSupply
+  //       );
+  //       // const response = await axios.post(`${URL}coin/bonding-curve-progress`, {
+  //       //   realTokenReserves: bondingCurveBalance,
+  //       //   curveLimit: totalSupply,
+  //       // });
+  //       // console.log("response.data:", response.data);
+  //       // const progressPercentage = response.data.distributedPercentage;
+
+  //       // setBondingCurveProgress(progressPercentage);
+
+  //       if (bondingCurveBalance > 0) {
+  //         const response = await axios.post(
+  //           `${URL}coin/bonding-curve-progress`,
+  //           {
+  //             realTokenReserves: bondingCurveBalance,
+  //             curveLimit: totalSupply,
+  //           }
+  //         );
+
+  //         const progressPercentage = response.data.distributedPercentage;
+
+  //         // Save last valid progress
+  //         lastValidProgressRef.current = progressPercentage;
+  //         console.log(
+  //           "lastValidProgressRef.current",
+  //           lastValidProgressRef.current
+  //         );
+  //         setBondingCurveProgress(progressPercentage);
+  //       } else {
+
+  //         // If realTokenReserves is 0, use the last saved progress
+  //         setBondingCurveProgress(lastValidProgressRef.current);
+  //         console.log(
+  //           "Using last saved progress:",
+  //           lastValidProgressRef.current
+  //         );
+  //       }
+
+  //       const token = tokenData.bondingCurve;
+
+  //       const res = await axios.get(`${URL}coin/getkoth/${token}`);
+
+  //       const progress = Math.min(res.data.progress, 100);
+  //       setKothProgress(progress);
+  //       console.log(token);
+  //       console.log(res.data.progress);
+  //       if (progress > 0) {
+  //         lastValidKothProgressRef.current = progress;
+  //         console.log("Fetched KOTH progress:", progress);
+  //         setKothProgress(progress);
+  //       } else {
+  //         console.log(
+  //           "KOTH progress is 0. Using last known progress:",
+  //           lastValidKothProgressRef.current
+  //         );
+  //         setKothProgress(lastValidKothProgressRef.current);
+  //       }
+  //     }
+
+  //     if (tokenData.token) {
+  //       try {
+  //         const response = await axios.get(
+  //           `${URL}user/coin/api/holders/${tokenData.token}`
+  //         );
+  //         const fetchedHolders = response.data;
+  //         console.log("Fetched holders:", fetchedHolders);
+  //         if (Array.isArray(fetchedHolders) && fetchedHolders.length > 0) {
+  //           setHolders(fetchedHolders);
+  //         } else {
+  //           setErrorMsg("something went wrong");
+  //           setHolders([]);
+  //         }
+  //       } catch (error) {
+  //         console.error("Error fetching holders from API:", error);
+  //         setErrorMsg("something went wrong");
+  //         setHolders([]);
+  //       }
+  //     } else {
+  //       setErrorMsg("something went wrong");
+  //       setHolders([]);
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching data:", error);
+  //     setErrorMsg("something went wrong");
+  //     setHolders([]);
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+
   const fetchData = async () => {
     try {
       setIsLoading(true);
 
       if (publicKey) {
         const balanceLamports = await connection.getBalance(publicKey);
+
         setBalance(balanceLamports / LAMPORTS_PER_SOL);
+
         const tokenBal = await getTokenBalance(
           publicKey.toBase58(),
           tokenData.token || ""
         );
+
         setTokenBalance(tokenBal || 0);
       } else {
         setBalance(0);
@@ -274,10 +393,20 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
 
         console.log(
           "realTokenReserves:",
+
           bondingCurveBalance,
           "curveLimit:",
           totalSupply
         );
+        const bondingCurveAddress = new PublicKey(tokenData.bondingCurve);
+
+        // const bondingCurveLamports = await connection.getBalance(bondingCurveAddress);
+
+        // const bondingCurveSOL = bondingCurveLamports / LAMPORTS_PER_SOL;
+
+        // console.log("Bonding Curve SOL Balance:", bondingCurveSOL);
+        // setMsg(bondingCurveSOL);
+
         // const response = await axios.post(`${URL}coin/bonding-curve-progress`, {
         //   realTokenReserves: bondingCurveBalance,
         //   curveLimit: totalSupply,
@@ -286,7 +415,13 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
         // const progressPercentage = response.data.distributedPercentage;
 
         // setBondingCurveProgress(progressPercentage);
+        const tokenn = tokenData.bondingCurve;
 
+        const resp = await axios.get(`${URL}coin/getSol/${tokenn}`);
+        const bondingCurveSOL = resp.data.progress;
+
+        console.log("Bonding Curve SOL Balance:", bondingCurveSOL);
+        setMsg(bondingCurveSOL);
         if (bondingCurveBalance > 0) {
           const response = await axios.post(
             `${URL}coin/bonding-curve-progress`,
@@ -306,7 +441,6 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
           );
           setBondingCurveProgress(progressPercentage);
         } else {
-          
           // If realTokenReserves is 0, use the last saved progress
           setBondingCurveProgress(lastValidProgressRef.current);
           console.log(
@@ -316,24 +450,11 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
         }
 
         const token = tokenData.bondingCurve;
-
+        console.log("token", token);
         const res = await axios.get(`${URL}coin/getkoth/${token}`);
 
-        const progress = Math.min(res.data.progress, 100);
-        setKothProgress(progress);
-        console.log(token);
-        console.log(res.data.progress);
-        if (progress > 0) {
-          lastValidKothProgressRef.current = progress;
-          console.log("Fetched KOTH progress:", progress);
-          setKothProgress(progress);
-        } else {
-          console.log(
-            "KOTH progress is 0. Using last known progress:",
-            lastValidKothProgressRef.current
-          );
-          setKothProgress(lastValidKothProgressRef.current);
-        }
+        const progressSet = Math.min(res.data.progress, 100);
+        setKothProgress(progressSet);
       }
 
       if (tokenData.token) {
@@ -384,6 +505,19 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
     };
   }, []);
 
+  useEffect(() => {
+    const handleSol = (message: any) => {
+      console.log("Real-time Sol update (Ably):", message.data);
+      // const progressSet = Math.min(res.data.progress, 100);
+      setMsg(message.data.balance);
+    };
+
+    channel.subscribe("solGet", handleSol);
+
+    return () => {
+      channel.unsubscribe("solGet", handleSol);
+    };
+  }, []);
 
   useEffect(() => {
     const handleKothGet = (message: any) => {
@@ -403,9 +537,9 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
       console.log("Real-time token holders update (Ably):", message.data);
       setHolders(message.data.formattedHolders); // Update state with the list of top holders
     };
-  
+
     channel.subscribe("tokenHolders", handleTokenHolders);
-  
+
     return () => {
       channel.unsubscribe("tokenHolders", handleTokenHolders);
     };
@@ -508,26 +642,22 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
 
         await connection.confirmTransaction(signature, "confirmed");
 
-      // Prepare onTradeSuccess data
-      const tradeSuccessData = {
-        tokenName: tokenData.name,
-        tradeType: isBuyActive ? "bought" : "sold",
-        marketCap: marketCap,
-        amount: isBuyActive
-          ? `${value} SOL`
-          : `${calculatedAmount} ${tokenData.ticker}`,
-      };
+        // Prepare onTradeSuccess data
+        const tradeSuccessData = {
+          tokenName: tokenData.name,
+          tradeType: isBuyActive ? "bought" : "sold",
+          marketCap: marketCap,
+          amount: isBuyActive
+            ? `${value} SOL`
+            : `${calculatedAmount} ${tokenData.ticker}`,
+        };
 
-      try {
-      await axios.post(`${URL}coin/api/trade-success`, tradeSuccessData);
-      console.log("succes posted", tradeSuccessData);
-        
-      } catch (error) {
-        console.error("Error posting trade success data:", error);
-        
-      }
-
-      
+        try {
+          await axios.post(`${URL}coin/api/trade-success`, tradeSuccessData);
+          console.log("succes posted", tradeSuccessData);
+        } catch (error) {
+          console.error("Error posting trade success data:", error);
+        }
 
         const updatedMarketCap = await postPrice();
         await fetchData();
@@ -745,14 +875,14 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
           isEagleMode={isEagleMode}
         />
       )}
-      <ProgressBar
-        title="bonding curve progress"
-        msg={msg}
-        progress={bondingCurveProgress}
-        gradientFrom="from-blue-500"
-        gradientTo="to-cyan-400"
-        shadowColor="shadow-blue-500/30"
-      />
+    <ProgressBar
+  title="bonding curve progress"
+  msg={`there is ${(typeof msg === 'number' ? msg.toFixed(2) : '0.00')} SOL in the bonding curve.`}
+  progress={bondingCurveProgress}
+  gradientFrom="from-blue-500"
+  gradientTo="to-cyan-400"
+  shadowColor="shadow-blue-500/30"
+/>
       <ProgressBar
         title="King of the hill progress"
         progress={kothProgress}
