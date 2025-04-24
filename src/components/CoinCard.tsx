@@ -1,5 +1,9 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
+import axios from "axios";
+import { ably } from "../utils/ablyClient";
+
+const URL = process.env.VITE_API_URL || "http://localhost:8000/";
 
 const getTimeAgo = (dateString: string) => {
   const date = new Date(dateString);
@@ -28,6 +32,7 @@ interface CoinCardProps {
 }
 
 const CoinCard: React.FC<CoinCardProps> = ({ coin, onTradeClick, price }) => {
+  const [replyCount, setReplyCount] = useState<number>(0);
   const timeAgo = getTimeAgo(coin.date);
   console.log("coin: ", coin.marketCap);
 
@@ -37,6 +42,32 @@ const CoinCard: React.FC<CoinCardProps> = ({ coin, onTradeClick, price }) => {
     coin.description.length > maxDescriptionLength
       ? `${coin.description.slice(0, maxDescriptionLength)}...`
       : coin.description;
+
+  useEffect(() => {
+    const fetchReplyCount = async () => {
+      try {
+        const response = await axios.get(
+          `${URL}coin/reply-count/${coin.token}`
+        );
+
+        setReplyCount(response.data.replyCount);
+      } catch (error) {
+        console.error("Error fetching reply count:", error);
+      }
+    };
+
+    fetchReplyCount();
+
+    const channel = ably.channels.get(`reply-count-${coin.token}`);
+
+    channel.subscribe("reply-count", (message) => {
+      //  console.log(message.data);
+      setReplyCount(message.data.replyCount);
+    });
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [coin.token]);
 
   return (
     <div
@@ -66,6 +97,9 @@ const CoinCard: React.FC<CoinCardProps> = ({ coin, onTradeClick, price }) => {
         <div className="flex flex-col items-start w-full">
           <p className="text-gray-400 text-xs truncate w-full text-left">
             {truncatedDescription}
+          </p>
+          <p className="text-xs">
+            replies: <span>{replyCount || 0}</span>
           </p>
           <div className="text-gray-400 text-xs mt-0.5 text-left">
             Created {timeAgo}
