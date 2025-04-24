@@ -75,21 +75,21 @@ const CoinCard: React.FC<CoinCardProps> = ({ coin, onTradeClick, price }) => {
       className="relative min-w-[280px] w-full bg-black/90 border-2 border-yellow-400/80 rounded-lg flex items-center hover:cursor-pointer"
     >
       {/* Left side - Image */}
-      <div className="relative w-12 h-12 flex-shrink-0 m-2">
+      <div className="relative w-[70px] h-[70px] flex-shrink-0 m-2">
         <img
           src={coin.imgUrl}
           alt={coin.name}
-          className="w-full h-full object-cover rounded-full"
+          className="w-full h-full object-cover"
         />
       </div>
 
       {/* Right side - Content */}
       <div className="flex-1 p-2 min-w-0 flex flex-col">
         <div className="flex items-center justify-between mb-1">
-          <h3 className="text-sm font-bold text-white truncate">
+          <h3 className="text-xs font-bold text-white truncate">
             {coin.name} <span className="text-gray-400">({coin.ticker})</span>
           </h3>
-          <span className="px-3 py-1 rounded-full bg-purple-600 text-white text-xs font-medium">
+          <span className="px-2 py-1 rounded-full bg-purple-600 text-white text-xs font-small">
             ${((coin.marketCap * (price ?? 164.91)) / 1000).toFixed(2)}K
           </span>
         </div>
