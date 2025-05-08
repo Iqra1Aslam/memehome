@@ -12,11 +12,11 @@ import axios from "axios";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { ToastContainer, toast } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
-// import { io } from "socket.io-client";
-// import Ably from "ably";
-import { channel } from "../../utils/ablyClient"
-const URL = process.env.VITE_API_URL || "http://localhost:8000/";
- 
+import { ChevronRight, ChevronLeft } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { channel, ably } from "../../utils/ablyClient"
+
+const URL = import.meta.env.VITE_API_URL;
 interface Trade {
   account: string;
   type: "buy" | "sell";
@@ -26,7 +26,7 @@ interface Trade {
   tokenAddress: string;
   timestamp: string;
 }
- 
+
 interface ThreadSectionProps {
   activeTab: "thread" | "trades";
   setActiveTab: (tab: "thread" | "trades") => void;
@@ -34,7 +34,7 @@ interface ThreadSectionProps {
   trades?: Trade[];
   tokenAddress?: string;
 }
- 
+
 const ThreadSection: React.FC<ThreadSectionProps> = ({
   activeTab,
   setActiveTab,
@@ -49,24 +49,27 @@ const ThreadSection: React.FC<ThreadSectionProps> = ({
   const [coinData, setCoinData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [coins, setCoins] = useState([]);
+  const [replyCount, setReplyCount] = useState<number>(0);
   const [messages, setMessages] = useState<any[]>([]);
   const [value, setValue] = useState(0);
   const replyCountRef = useRef<{ [token: string]: number }>({});
   const [msg, setMsg] = useState("");
+  const scrollRef = useRef(null);
   const wallet = useWallet();
   const publickey = wallet.publicKey;
- 
+
   const truncateAddress = (address: string) =>
     `${address.substring(0, 4)}...${address.substring(address.length - 4)}`;
- 
+
   const formatTokenAmount = (amount: number): string => {
     if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(2)}M`;
     if (amount >= 1_000) return `${(amount / 1_000).toFixed(2)}k`;
     return amount.toString();
   };
- 
+
   const formatSolAmount = (amount: number): string => amount.toFixed(4);
- 
+
   const formatTimeAgo = (timestamp: string): string => {
     const now = new Date();
     const tradeTime = new Date(timestamp);
@@ -76,51 +79,50 @@ const ThreadSection: React.FC<ThreadSectionProps> = ({
     if (diffSec < 86400) return `${Math.floor(diffSec / 3600)} hr ago`;
     return `${Math.floor(diffSec / 86400)} day${diffSec >= 172800 ? "s" : ""} ago`;
   };
- 
+
   const fetchTrades = async () => {
     if (!tokenAddress) {
-      console.log("No tokenAddress provided for fetching trades");
+      // console.log("No tokenAddress provided for fetching trades");
       setFetchedTrades(trades);
       return;
     }
     setIsLoading(true);
- 
+
     try {
       const response = await axios.get(`${URL}coin/api/trades/${tokenAddress}`);
       const tradesData = response.data.trades || [];
-      console.log("Fetched trades from backend:", tradesData);
+      // console.log("Fetched trades from backend:", tradesData);
       // Sort trades by timestamp (newest first)
       const sortedTrades = tradesData.sort((a: Trade, b: Trade) =>
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       );
       setFetchedTrades(sortedTrades);
     } catch (error) {
-      console.error("Error fetching trades:", error);
+      // console.error("Error fetching trades:", error);
       setFetchedTrades(trades);
     } finally {
       setIsLoading(false);
- 
+
     }
   };
   // Initial fetch
   useEffect(() => {
     fetchTrades();
   }, [tokenAddress]);
- 
- 
+
+
   useEffect(() => {
     if (!tokenAddress) return;
     const onNewTrade = (message: any) => {
       const tradeData = message.data;
-      console.log("new trade received via Ably", tradeData)
+      // console.log("new trade received via Ably", tradeData)
       // If user is on trades tab, update local state with the new trade
       if (activeTab === "trades") {
         setFetchedTrades((prevTrades) => {
           const updatedTrades = [...prevTrades, tradeData];
-          // Sort by timestamp (newest first)
-          return updatedTrades.sort((a: Trade, b: Trade) =>
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-          );
+         
+          return updatedTrades;
+          
         });
       }
     };
@@ -129,9 +131,9 @@ const ThreadSection: React.FC<ThreadSectionProps> = ({
       channel.unsubscribe("new_trade", onNewTrade);
     };
   }, [tokenAddress, activeTab]);
- 
+
   useEffect(() => {
- 
+
     fetchStoredMessages();
   }, [trades]);
   const handleTabClick = (tab: "thread" | "trades") => {
@@ -140,16 +142,16 @@ const ThreadSection: React.FC<ThreadSectionProps> = ({
       setShouldFetch(true);
     }
   };
- 
+
   const fetchStoredMessages = async () => {
- 
+
     try {
       const response = await axios.get(`${URL}coin/getMessage/${tokenAddress}`);
       // Sort messages by timestamp (newest first)
       const sortedMessages = response.data.sort((a: any, b: any) =>
         new Date(b.time).getTime() - new Date(a.time).getTime()
       );
- 
+
       setMessages(sortedMessages);
     } catch (error) {
       console.error("Failed to fetch coin details:", error);
@@ -157,17 +159,17 @@ const ThreadSection: React.FC<ThreadSectionProps> = ({
   };
   useEffect(() => {
     channel.subscribe("coinAdded", (message: any) => {
-      console.log("New message received in real-time:", message.data);
+      // console.log("New message received in real-time:", message.data);
       setMessages((prev) => [...prev, message.data.savedMessage]);
     })
- 
- 
+
+
     return () => {
       channel.unsubscribe();
- 
+
     };
   }, []);
- 
+
   const handlePostMessage = async () => {
     const payload = {
       msg,
@@ -180,9 +182,8 @@ const ThreadSection: React.FC<ThreadSectionProps> = ({
           "Content-Type": "application/json",
         },
       });
-      console.log("Message posted successfully:", response.data);
-      const coinId = response.data.coinId;
-      setCoinId(coinId);
+      // console.log("Message posted successfully:", response.data);
+
       setMsg("");
       setIsDialogOpen(false);
       fetchStoredMessages();
@@ -192,22 +193,108 @@ const ThreadSection: React.FC<ThreadSectionProps> = ({
         closeButton: false,
         hideProgressBar: true,
         style: {
-          backgroundColor:" rgba(17, 24, 39, 0.8)",
+          backgroundColor: " rgba(17, 24, 39, 0.8)",
           color: "white",
           fontSize: "0.875rem",
           borderRadius: "0.5rem",
           padding: "1rem",
           outline: "1px solid #FF0000",
- 
+
         },
       });
- 
+
       console.error("Failed to post message:", error);
     }
   };
+  useEffect(() => {
+    const fetchSimilarCoins = async () => {
+      try {
+        const response = await axios.get(
+          `${URL}coin/getSimilarCoins/${tokenAddress}`
+        );
+        // console.log("response data", response.data);
+        setCoins(response.data); // Make sure this matches your API response structure
+      } catch (error) {
+        console.error('Error fetching similar coins:', error);
+      }
+    };
+
+    fetchSimilarCoins();
+  }, []);
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return formatDistanceToNow(date, { addSuffix: true });
+
+  };
+  const scrollCoins = (direction) => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({
+        left: direction === 'right' ? 300 : -300,
+        behavior: 'smooth',
+      });
+    }
+  };
+  // Fetch the reply count from localStorage when the component mounts
+  useEffect(() => {
+    const fetchReplyCount = async () => {
+      try {
+        const response = await axios.get(
+          `${URL}coin/reply-count/${tokenAddress}`
+        );
+        // console.log("response data ", response.data);
+        setReplyCount(response.data.replyCount);
+      } catch (error) {
+        console.error("Error fetching reply count:", error);
+      }
+    };
+
+    fetchReplyCount();
+    const channel = ably.channels.get(`reply-count-${tokenAddress}`);
+
+    channel.subscribe("reply-count", (message) => {
+      setReplyCount(message.data.replyCount);
+      //   }
+    });
+    return () => {
+      channel.unsubscribe();
+    };
+  }, []);
+  // const getCoin = async () => {
+
+  //   try {
+  //     const response = await axios.get(`${URL}coin/coinDetail/${tokenAddress}`);
+  //     console.log("response data Coin:", response.data);
+  //     setCoinData(response.data);
+  //   } catch (error) {
+  //     console.error("Failed to fetch coin details:", error);
+  //   }
+  // };
+  const getCoin = async () => {
+  setLoading(true); // mark as loading
+  try {
+    const response = await axios.get(`${URL}coin/coinDetail/${tokenAddress}`);
+    // console.log("response data Coin:", response.data);
+    const channel = ably.channels.get(`reply-count-${tokenAddress}`);
+
+    
+     
+    setCoinData(response.data);
  
+  } catch (error) {
+    console.error("Failed to fetch coin details:", error);
+  } finally {
+    setLoading(false); // mark loading complete
+  }
+};
+
+  useEffect(() => {
+    getCoin();
+    return () => {
+     
+    };
+  }, [tokenAddress]);
   return (
- 
+
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -228,10 +315,63 @@ const ThreadSection: React.FC<ThreadSectionProps> = ({
           color="purple"
         />
       </div>
- 
+
       {activeTab === "thread" ? (
         <div className="space-y-4">
           <div className="space-y-4">
+          <div className="relative flex">
+  <div className="bg-gray-800/40 border border-purple-500/20 rounded-lg p-5 shadow-md">
+    {/* Top row: Creator and Time */}
+    <div className="flex justify-between items-center mb-3">
+      {loading ? (
+        <div className="w-full flex justify-between animate-pulse">
+          <div className="h-4 bg-gray-500/30 rounded w-1/3"></div>
+          <div className="h-4 bg-gray-500/30 rounded w-1/4 ml-2"></div>
+        </div>
+      ) : (
+        <>
+          <p className="text-sm text-purple-400">
+            <span className="font-medium">{coinData?.creator?.name}</span>
+          </p>
+          <p className="text-sm text-gray-500 ml-2">
+            {new Date(coinData?.time).toLocaleString()}
+          </p>
+        </>
+      )}
+    </div>
+
+    {/* Main Content Row: Image and Info */}
+    <div className="flex items-center space-x-5">
+      {loading ? (
+        <div className="animate-pulse flex items-center space-x-5">
+          <div className="w-20 h-20 bg-gray-500/30 rounded"></div>
+          <div className="space-y-2">
+            <div className="h-4 bg-gray-500/30 rounded w-48"></div>
+            <div className="h-3 bg-gray-500/30 rounded w-64"></div>
+          </div>
+        </div>
+      ) : (
+        <>
+          <img
+            src={coinData?.imgUrl}
+            className="w-20 h-20 object-cover"
+            alt="coin"
+          />
+          <div>
+            <h3 className="text-sm font-bold text-white -mt-10 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-purple-500 group-hover:via-pink-500 group-hover:to-indigo-500 transition-all">
+              {coinData?.name}{" "}
+              <span className="text-gray-400">({coinData?.ticker})</span>
+            </h3>
+            <p className="text-sm text-gray-400 mt-1">
+              <span className="text-sm">{coinData?.description}</span>
+            </p>
+          </div>
+        </>
+      )}
+    </div>
+  </div>
+</div>
+
             {messages.length > 0 ? (
               messages.map((msg, index) => (
                 <ThreadMessage
@@ -256,6 +396,62 @@ const ThreadSection: React.FC<ThreadSectionProps> = ({
             <span>post a reply</span>
             <Sparkles size={14} />
           </motion.button>
+          <div className="mt-4 mx-4">
+            <h3 className="text-lg text-purple-400 ml-9">similar coins</h3>
+
+            <div className="relative mt-2 flex">
+
+              <button
+                className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-gray-800/70 p-2 rounded-full"
+                onClick={() => scrollCoins('left')}
+              >
+
+                <ChevronLeft className="text-purple-400 w-5 h-5" />
+              </button>
+
+              {/* Scrollable Cards */}
+              <div
+                ref={scrollRef}
+                className="flex space-x-5 overflow-x-auto px-10 py-2 scrollbar-thin scrollbar-thumb-purple-400/40"
+              >
+                {coins.slice(0, 10).map((coin, index) => (
+                  <div
+                    key={index}
+                    className="min-w-[330px] bg-gray-800/40 border border-purple-500/20 rounded-lg p-4 py-4 shadow-md flex items-center space-x-4"
+                  >
+                    <img
+                      src={coin.imgUrl}
+                      alt={coin.name}
+                      className="w-20 h-20 object-cover mb-2"
+                    />
+                    <div>
+                      <h3 className="text-sm font-bold text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-purple-500 group-hover:via-pink-500 group-hover:to-indigo-500 transition-all">
+                        {coin.name}{" "}
+                        <span className="text-gray-400">({coin.ticker})</span>
+                      </h3>
+                      <p className="text-sm text-purple-400 ">
+                        MarketCap: ${coin.marketCap.toFixed(2)}
+                      </p>
+                      <p className="text-white/80 text-sm">
+                        replies: <span>{replyCount || 0}</span>
+                      </p>
+                      <p className="text-sm text-gray-400">created:
+                        <span className="text-sm ml-1">{formatTime(coin.date)}</span>
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Right Arrow */}
+              <button
+                className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-gray-800/70 p-2 rounded-full"
+                onClick={() => scrollCoins('right')}
+              >
+                <ChevronRight className="text-purple-400 w-5 h-5" />
+              </button>
+            </div>
+          </div>
           <ToastContainer
             position="top-center"
           />
@@ -356,11 +552,13 @@ const ThreadSection: React.FC<ThreadSectionProps> = ({
               </table>
             )}
           </div>
- 
+
         </div>
       )}
     </motion.div>
   );
+
+  
 };
- 
+
 export default ThreadSection;

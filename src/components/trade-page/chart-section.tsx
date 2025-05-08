@@ -1752,7 +1752,7 @@ const ChartSection: React.FC<ChartSectionProps> = ({ tokenData }) => {
         },
       });
       if (!Array.isArray(response.data) || response.data.length === 0) {
-        console.log(`No ${interval} OHLC data returned from API for ${range}`);
+        // console.log(`No ${interval} OHLC data returned from API for ${range}`);
         return [];
       }
       const mappedData = response.data.map((item: OHLCData) => ({
@@ -1787,7 +1787,7 @@ const ChartSection: React.FC<ChartSectionProps> = ({ tokenData }) => {
         price: number;
         timestamp: string;
       };
-      console.log("Received Ably priceUpdate message:", message);
+      // console.log("Received Ably priceUpdate message:", message);
 
       if (data.bondingCurve === tokenData.bondingCurve) {
         const newCandle: CandlestickData = {

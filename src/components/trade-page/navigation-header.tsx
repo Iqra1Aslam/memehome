@@ -1,6 +1,5 @@
 
 "use client";
-
 import type React from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
@@ -27,9 +26,9 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
 }) => {
   // Use provided price if available, otherwise fallback to 164.91
   const effectivePrice = price ?? 164.91;
-  console.log("price from navigation: ", price);
-  console.log("effectivePrice: ", effectivePrice);
-  const URL = process.env.VITE_API_URL || "http://localhost:8000/";
+  // console.log("token from navigation: ", token);
+  // console.log("effectivePrice: ", effectivePrice);
+  const URL = import.meta.env.VITE_API_URL;
   const [replyCount, setReplyCount] = useState<number>(0);
 
   useEffect(() => {
@@ -37,6 +36,7 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
       try {
         const response = await axios.get(`${URL}coin/reply-count/${token}`);
         setReplyCount(response.data.replyCount);
+        // console.log("replies token :",token);
       } catch (error) {
         console.error("Error fetching reply count:", error);
       }
@@ -46,6 +46,7 @@ const NavigationHeader: React.FC<NavigationHeaderProps> = ({
     const channel = ably.channels.get(`reply-count-${token}`);
     channel.subscribe("reply-count", (message) => {
       setReplyCount(message.data.replyCount);
+      // console.log("replies ably token :",message.data);
     });
     return () => {
       channel.unsubscribe();

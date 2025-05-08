@@ -44,10 +44,11 @@ const CreateToken: React.FC<CreateTokenProps> = ({ onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [tokenMintAddress, setTokenMintAddress] = useState("");
   const [showNotification, setShowNotification] = useState(false);
-  const [showLoader, setShowLoader] = useState(false); // State to manage loader visibility
+  const [showLoader, setShowLoader] = useState(false); 
   const { connection } = useConnection();
   const wallet = useWallet();
   const publicKey = wallet.publicKey;
+  const {  signMessage } = useWallet();
   const sendTransaction = wallet.sendTransaction;
 
   const [formData, setFormData] = useState<Token>({
@@ -57,14 +58,45 @@ const CreateToken: React.FC<CreateTokenProps> = ({ onClose }) => {
     description: "",
   });
 
+  // useEffect(() => {
+  //   if (publicKey) {
+  //     setIsWalletConnected(true);
+  //     const alreadySigned = localStorage.getItem(`hasSignedIn-${publicKey.toBase58()}`);
+  //     if (!alreadySigned) {
+  //     const message = 'Memehome';
+  //     const encodedMessage = new TextEncoder().encode(message);
+  
+  //     const signature = signMessage(encodedMessage);
+  //     const signatureBase58 = bs58.encode(signature);
+  
+  //     console.log('Wallet Address:', publicKey.toBase58());
+  //     console.log('Signature:', signatureBase58);
+  
+  //     // Save sign-in status specific to wallet address
+  //     localStorage.setItem(`hasSignedIn-${publicKey.toBase58()}`, 'true');
+  //     console.log('Sign-in status stored:', localStorage.getItem(`hasSignedIn-${publicKey.toBase58()}`));
+   
+  //   } } else {
+  //     setIsWalletConnected(false);
+  //     Object.keys(localStorage).forEach((key) => {
+  //       if (key.startsWith('hasSignedIn-')) {
+  //         localStorage.removeItem(key);
+  //       }
+  //     })
+  //   }
+  // }, [publicKey]);
   useEffect(() => {
     if (publicKey) {
       setIsWalletConnected(true);
+     
+  
     } else {
       setIsWalletConnected(false);
+  
+     
     }
   }, [publicKey]);
-
+  
   const handleFormFieldChange = (
     fieldName: string,
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -83,9 +115,9 @@ const CreateToken: React.FC<CreateTokenProps> = ({ onClose }) => {
       }
 
       const tokenMintkp = Keypair.generate();
-      console.log("Token Keypair:", tokenMintkp.publicKey.toBase58());
+      // console.log("Token Keypair:", tokenMintkp.publicKey.toBase58());
       const tokenPrivateKey = bs58.encode(tokenMintkp.secretKey);
-      console.log("Token Private Key:", tokenPrivateKey);
+      // console.log("Token Private Key:", tokenPrivateKey);
 
       const metadataProgram = new PublicKey(
         "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
@@ -95,20 +127,20 @@ const CreateToken: React.FC<CreateTokenProps> = ({ onClose }) => {
         setShowLoader(true);
 
         const metadataUrl = (await uploadMetadata(token)) as string;
-        console.log("Metadata URL:", metadataUrl);
+        // console.log("Metadata URL:", metadataUrl);
 
         const bondingCurvePda = getBondingCurve(
           tokenMintkp.publicKey.toBase58()
         );
-        console.log("Bonding Curve PDA:", bondingCurvePda.toBase58());
+        // console.log("Bonding Curve PDA:", bondingCurvePda.toBase58());
 
         const curveTokenAccount = await getCurveAdddressFunc(
           tokenMintkp.publicKey.toBase58()
         );
-        console.log("Curve Token Account:", curveTokenAccount.toBase58());
+        // console.log("Curve Token Account:", curveTokenAccount.toBase58());
 
         const tokenMetadata = await getMetadataFunc(tokenMintkp);
-        console.log("Token Metadata Account:", tokenMetadata.toBase58());
+        // console.log("Token Metadata Account:", tokenMetadata.toBase58());
 
         const instruction = await program.methods
           .launch(token.name, token.symbol, metadataUrl)
@@ -138,13 +170,13 @@ const CreateToken: React.FC<CreateTokenProps> = ({ onClose }) => {
         const signature = await connection.sendRawTransaction(
           signedTransaction.serialize()
         );
-        console.log("Transaction Signature:", signature);
+        // console.log("Transaction Signature:", signature);
 
         const confirmation = await connection.confirmTransaction(
           signature,
           "confirmed"
         );
-        console.log("Transaction Confirmation:", confirmation);
+        // console.log("Transaction Confirmation:", confirmation);
 
         const formData = {
           wallet: publicKey.toBase58(),
@@ -161,7 +193,7 @@ const CreateToken: React.FC<CreateTokenProps> = ({ onClose }) => {
           axios
             .post(`${URL}coin/create-coin`, formData)
             .then((response) => {
-              console.log("Coin created successfully:", response.data);
+              // console.log("Coin created successfully:", response.data);
             })
             .catch((error) => {
               console.error("Error creating coin in database:", error);
@@ -242,10 +274,13 @@ const CreateToken: React.FC<CreateTokenProps> = ({ onClose }) => {
               isLoading={isLoading}
               handleFormFieldChange={handleFormFieldChange}
               handleImageChange={handleImageChange}
+              
               handleSubmit={handleSubmit}
             />
           )}
         </motion.div>
+       
+
       </div>
 
       {/* Loader */}

@@ -8,6 +8,7 @@ interface TokenFormProps {
     name: string;
     symbol: string;
     image: string;
+  
     description: string;
   };
   isImageUploading: boolean;
@@ -90,7 +91,9 @@ const TokenForm: React.FC<TokenFormProps> = ({
           </div>
         </div>
       </div>
-
+      <span className="flex text-sm text-gray-400 ml-1">
+       There is a 0.02% fee for creating a token.
+        </span>
       <motion.button
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
@@ -98,6 +101,7 @@ const TokenForm: React.FC<TokenFormProps> = ({
         type="submit"
         disabled={isImageUploading || isLoading}
       >
+        
         <Sparkles className="w-5 h-5" />
         <span>
           {isImageUploading

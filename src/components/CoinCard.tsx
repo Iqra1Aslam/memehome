@@ -34,7 +34,7 @@ interface CoinCardProps {
 const CoinCard: React.FC<CoinCardProps> = ({ coin, onTradeClick, price }) => {
   const [replyCount, setReplyCount] = useState<number>(0);
   const timeAgo = getTimeAgo(coin.date);
-  console.log("coin: ", coin.marketCap);
+ 
 
   // Optional: Programmatically truncate description to a max length
   const maxDescriptionLength = 50;

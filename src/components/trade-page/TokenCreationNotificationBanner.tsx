@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import { channel } from "../../utils/ablyClient";
 import axios from "axios";
-
+const URL = import.meta.env.VITE_API_URL;
 const jerkyAnimation = {
   initial: { opacity: 0, y: -20 },
   animate: {
@@ -55,9 +55,9 @@ const TokenCreationNotificationBanner: React.FC = () => {
       setIsLoading(true);
       try {
         const response = await axios.get(
-          "http://localhost:8000/coin/api/token-creation-notifications"
+          `${URL}coin/api/token-creation-notifications`
         );
-        console.log("API response:", response.data);
+        // console.log("API response:", response.data);
 
         // Handle the API response format { notification: "string" }
         const notificationMessage = response.data.notification;
@@ -102,10 +102,10 @@ const TokenCreationNotificationBanner: React.FC = () => {
 
   useEffect(() => {
     const handleNotif = (message: any) => {
-      console.log("Real-time koth progress update (Ably):", message.data);
+      // console.log("Real-time koth progress update (Ably):", message.data);
       const { creator, ticker } = message.data;
       const notificationMessage = `${creator.name} created ${ticker}`;
-      console.log("Notification message:", notificationMessage);
+      // console.log("Notification message:", notificationMessage);
 
       const newTokenCreation: TokenCreation = {
         id: Date.now(),
@@ -134,9 +134,9 @@ const TokenCreationNotificationBanner: React.FC = () => {
   return (
     <motion.div
       key={lastTokenCreation.id}
-      variants={jerkyAnimation}
-      initial="initial"
-      animate="animate"
+      // variants={jerkyAnimation}
+      // initial="initial"
+      // animate="animate"
       exit="exit"
       className="max-w-[220px] w-full h-10 bg-gradient-to-r from-green-500/20 to-teal-500/20 backdrop-blur-sm text-white py-2 px-3 rounded-lg border border-green-500/40 shadow-lg shadow-green-500/10 flex-shrink-0 flex items-center"
     >

@@ -1,8 +1,9 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef,useState } from "react";
 import { motion, useAnimationControls, useMotionValue } from "framer-motion";
 import CoinCard from "./CoinCard";
 import bg from "../assests/meme.webp";
 import "../index.css";
+import { ably, channel } from "../utils/ablyClient";
 
 interface Creator {
   _id: string;
@@ -47,7 +48,9 @@ const HeroSection: React.FC<HeroSectionProps> = ({
   const controls = useAnimationControls();
   const x = useMotionValue(0); // Start at 0
   const animationFrameRef = useRef<number | null>(null);
+  const [isTradeIncoming, setIsTradeIncoming] = useState(false); // NEW STATE
 
+ 
   // Calculate the total width of the cards
   const cardWidth = 320; // w-80 (320px) as defined in the card container
   const cardMargin = 16; // mx-4 (4 * 4 = 16px total margin per card)
@@ -60,8 +63,29 @@ const HeroSection: React.FC<HeroSectionProps> = ({
   const viewportWidth = 1280; // Approximate max width of the container (max-w-7xl)
   const minDuplicates = Math.ceil(viewportWidth / totalWidth) + 1; // Ensure enough duplicates to fill the viewport
   const duplicatedCards = Array(minDuplicates).fill(highMarketCapCoins).flat(); // Create multiple sets of cards
+  // ✅ Handle new trade animation trigger
+  useEffect(() => {
+    if (!channel) return;
+
+    const onNewTrade = (message: any) => {
+      const tradeData = message.data;
+
+      // Trigger temporary visual effect on new trade
+      setIsTradeIncoming(true);
+  console.log("setIsTradeIncoming",setIsTradeIncoming);
+      // Clear effect after 2s
+      setTimeout(() => setIsTradeIncoming(false), 2000);
+    };
+
+    channel.subscribe("new_trade", onNewTrade);
+
+    return () => {
+      channel.unsubscribe("new_trade", onNewTrade);
+    };
+  }, []);
 
   useEffect(() => {
+    if (isTradeIncoming) {
     let lastTime: number | null = null;
     const speed = 1; // Pixels per frame (adjust for speed)
 
@@ -96,7 +120,8 @@ const HeroSection: React.FC<HeroSectionProps> = ({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [x, totalWidth]);
+  }
+  }, [isTradeIncoming,x, totalWidth]);
 
   const handleMouseEnter = () => {
     if (animationFrameRef.current) {
@@ -133,7 +158,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({
     // Resume the animation
     animationFrameRef.current = requestAnimationFrame(animate);
   };
-  console.log("High Market Cap Coins:", highMarketCapCoins);
+  // console.log("High Market Cap Coins:", highMarketCapCoins);
   
   return (
     <div
@@ -151,7 +176,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({
           {/* Trending Coins Title */}
           <h2 className="text-3xl font-bold text-white mb-6">Trending Coins</h2>
 
-          {highMarketCapCoins.length > 0 && (
+          {highMarketCapCoins.length > 0 && isTradeIncoming && (
             <motion.div
               className="mt-12 overflow-hidden"
               initial={{ opacity: 0 }}

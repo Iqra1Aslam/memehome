@@ -49,6 +49,7 @@ const HowItWorks: React.FC = () => {
                   "Upload your meme image",
                   "Launch with a single click",
                   "Cost only ~ 0.02 SOL to launch",
+                  "fee only ~ 0.0015% SOL per trade",
                 ].map((item, index) => (
                   <li
                     key={index}

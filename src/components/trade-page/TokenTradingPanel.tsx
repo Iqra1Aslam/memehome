@@ -21,7 +21,7 @@ import {
   calculateAmountBuy,
   calculateAmountSell,
   getTokenBalance,
-  eachTokenPrice,
+  getLimit,
   getRealTokenReserves,
 } from "../../utils/programFunction";
 import { program, feeRecipt } from "../../utils/anchorClient";
@@ -132,6 +132,7 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [isCopied, setIsCopied] = useState(false); // State to track if text is copied
   const [msg, setMsg] = useState<number>(0);
+  const [isCurveComplete, setIsCurveComplete] = useState(false);
   const [marketCap, setMarketCap] = useState<string>(
     tokenData.marketCap || "$0"
   );
@@ -196,13 +197,13 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
       const res = await axios.get(`${URL}coin/token-price/${bid}`);
       const price = res.data.price;
       setTokenPrice(price);
-      console.log("tokenData.bondingCurve price", price);
+      // console.log("tokenData bondingCurve price", price);
     } catch (error) {
       console.error("Error fetching token price:", error);
     }
   };
   channel.subscribe("priceUpdate", (message) => {
-    console.log("token updated bondingCurve price", message.data);
+    // console.log("token updated bondingCurve price", message.data);
     setTokenPrice(message.data.price);
   });
 
@@ -226,7 +227,7 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
         price: updatedPrice,
         bondingCurve: tokenData.bondingCurve,
       });
-      console.log("updataed price data", res.data);
+      // console.log("updataed price data", res.data);
       const totalSupply = 800_000_000;
       const calculatedMarketCap =
         (updatedPrice * totalSupply) / LAMPORTS_PER_SOL;
@@ -391,13 +392,13 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
           tokenData.bondingCurve
         );
 
-        console.log(
-          "realTokenReserves:",
+        // console.log(
+        //   "realTokenReserves:",
 
-          bondingCurveBalance,
-          "curveLimit:",
-          totalSupply
-        );
+        //   bondingCurveBalance,
+        //   "curveLimit:",
+        //   totalSupply
+        // );
         const bondingCurveAddress = new PublicKey(tokenData.bondingCurve);
 
         // const bondingCurveLamports = await connection.getBalance(bondingCurveAddress);
@@ -420,7 +421,7 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
         const resp = await axios.get(`${URL}coin/getSol/${tokenn}`);
         const bondingCurveSOL = resp.data.progress;
 
-        console.log("Bonding Curve SOL Balance:", bondingCurveSOL);
+        // console.log("Bonding Curve SOL Balance:", bondingCurveSOL);
         setMsg(bondingCurveSOL);
         if (bondingCurveBalance > 0) {
           const response = await axios.post(
@@ -435,10 +436,10 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
 
           // Save last valid progress
           lastValidProgressRef.current = progressPercentage;
-          console.log(
-            "lastValidProgressRef.current",
-            lastValidProgressRef.current
-          );
+          // console.log(
+          //   "lastValidProgressRef.current",
+          //   lastValidProgressRef.current
+          // );
           setBondingCurveProgress(progressPercentage);
         } else {
           // If realTokenReserves is 0, use the last saved progress
@@ -450,11 +451,25 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
         }
 
         const token = tokenData.bondingCurve;
-        console.log("token", token);
+        // console.log("token", token);
         const res = await axios.get(`${URL}coin/getkoth/${token}`);
 
         const progressSet = Math.min(res.data.progress, 100);
         setKothProgress(progressSet);
+      }
+      if (tokenData.bondingCurve) {
+
+        const limit = await getLimit(
+          tokenData.bondingCurve
+        );
+
+        // console.log(
+        //   "curveLimit:",
+        //   limit
+        // );
+
+        setIsCurveComplete(limit);
+        // console.log("setIsCurveComplete  :",setIsCurveComplete);
       }
 
       if (tokenData.token) {
@@ -463,7 +478,7 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
             `${URL}user/coin/api/holders/${tokenData.token}`
           );
           const fetchedHolders = response.data;
-          console.log("Fetched holders:", fetchedHolders);
+          // console.log("Fetched holders:", fetchedHolders);
           if (Array.isArray(fetchedHolders) && fetchedHolders.length > 0) {
             setHolders(fetchedHolders);
           } else {
@@ -494,7 +509,7 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
 
   useEffect(() => {
     const handleprogress = (message: any) => {
-      console.log("Real-time B.C progress update (Ably):", message.data);
+      // console.log("Real-time B.C progress update (Ably):", message.data);
       setBondingCurveProgress(message.data.distributedPercentage);
     };
 
@@ -507,7 +522,7 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
 
   useEffect(() => {
     const handleSol = (message: any) => {
-      console.log("Real-time Sol update (Ably):", message.data);
+      // console.log("Real-time Sol update (Ably):", message.data);
       // const progressSet = Math.min(res.data.progress, 100);
       setMsg(message.data.balance);
     };
@@ -521,7 +536,7 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
 
   useEffect(() => {
     const handleKothGet = (message: any) => {
-      console.log("Real-time koth progress update (Ably):", message.data);
+      // console.log("Real-time koth progress update (Ably):", message.data);
       setKothProgress(Math.min(message.data.koth, 100));
     };
 
@@ -534,7 +549,7 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
 
   useEffect(() => {
     const handleTokenHolders = (message: any) => {
-      console.log("Real-time token holders update (Ably):", message.data);
+      // console.log("Real-time token holders update (Ably):", message.data);
       setHolders(message.data.formattedHolders); // Update state with the list of top holders
     };
 
@@ -571,10 +586,10 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
           isEagleMode && !isBuyActive
             ? result // Eagle mode sell: show tokens
             : isEagleMode && isBuyActive
-            ? result // Eagle mode buy: show tokens
-            : !isEagleMode && !isBuyActive
-            ? result // Normal mode sell: show SOL
-            : result // Normal mode buy: show tokens
+              ? result // Eagle mode buy: show tokens
+              : !isEagleMode && !isBuyActive
+                ? result // Normal mode sell: show SOL
+                : result // Normal mode buy: show tokens
         );
       }
     } else {
@@ -654,7 +669,7 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
 
         try {
           await axios.post(`${URL}coin/api/trade-success`, tradeSuccessData);
-          console.log("succes posted", tradeSuccessData);
+          // console.log("succes posted", tradeSuccessData);
         } catch (error) {
           console.error("Error posting trade success data:", error);
         }
@@ -673,7 +688,7 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
 
         try {
           await axios.post(`${URL}coin/api/trades`, tradeData);
-          console.log("Trade data posted successfully:", tradeData);
+          // console.log("Trade data posted successfully:", tradeData);
           const response = await axios.get(
             `${URL}coin/api/trades/${tokenData.token}`
           );
@@ -709,36 +724,8 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
       isCurveCompleted,
     ]
   );
-  const checkMigrationStatus = async () => {
-    try {
-      if (!tokenData.token || !publicKey) return;
 
-      const response = await axios.post(`${URL}coin/check-raydium`, {
-        creatorWallet: publicKey.toBase58(),
-        tokenAddress: tokenData.token,
-      });
 
-      console.log("Migration check result:", response.data);
-
-      if (
-        response.data.migrationResult ===
-        "bonding curve completed and token migrated to raydium"
-      ) {
-        setMsg("Token is ready for migration!");
-      } else {
-        setMsg("Token is not ready for migration..");
-      }
-    } catch (error) {
-      console.error("Error checking migration:", error);
-      // setMigrationStatus("Failed to check migration");
-      setMsg("Unknown migration status.");
-    }
-  };
-
-  // Call migration check before buy action
-  useEffect(() => {
-    checkMigrationStatus();
-  }, []);
 
   return (
     <motion.div
@@ -775,11 +762,10 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => setIsBuyActive(true)}
-            className={`py-3 rounded-lg ${
-              isBuyActive
+            className={`py-3 rounded-lg ${isBuyActive
                 ? "bg-gradient-to-r from-green-500 to-green-400 text-white"
                 : "bg-gray-800 text-gray-300"
-            }`}
+              }`}
           >
             Buy
           </motion.button>
@@ -787,11 +773,10 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => setIsBuyActive(false)}
-            className={`py-3 rounded-lg ${
-              !isBuyActive
+            className={`py-3 rounded-lg ${!isBuyActive
                 ? "bg-gradient-to-r from-red-500 to-red-400 text-white"
                 : "bg-gray-800 text-gray-300"
-            }`}
+              }`}
           >
             Sell
           </motion.button>
@@ -841,18 +826,18 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
             {isEagleMode
               ? isBuyActive
                 ? // Eagle mode buy: input SOL, output tokens
-                  `${calculatedAmount.toFixed(2)} ${tokenData.ticker}`
-                : // Eagle mode sell: input SOL, output tokens
-                  `${calculatedAmount.toFixed(2)} ${tokenData.ticker}`
-              : isBuyActive
-              ? // Normal mode buy: input SOL, output tokens
                 `${calculatedAmount.toFixed(2)} ${tokenData.ticker}`
-              : // Normal mode sell: input tokens, output SOL
+                : // Eagle mode sell: input SOL, output tokens
+                `${calculatedAmount.toFixed(2)} ${tokenData.ticker}`
+              : isBuyActive
+                ? // Normal mode buy: input SOL, output tokens
+                `${calculatedAmount.toFixed(2)} ${tokenData.ticker}`
+                : // Normal mode sell: input tokens, output SOL
                 `${calculatedAmount.toFixed(8)} SOL`}
           </span>
         </div>
       )}
-      <div className="mb-4 text-sm text-white">
+      <div className="mb-2 text-sm text-white ">
         <span>Token Price: </span>
         <motion.span
           key={tokenPrice}
@@ -863,7 +848,10 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
         >
           {tokenPrice.toFixed(10)} SOL
         </motion.span>
+       
+
       </div>
+
       {!isCurveCompleted && (
         <TradeButton
           isTrading={isTrading}
@@ -875,14 +863,19 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
           isEagleMode={isEagleMode}
         />
       )}
-    <ProgressBar
-  title="bonding curve progress"
-  msg={`there is ${(typeof msg === 'number' ? msg.toFixed(2) : '0.00')} SOL in the bonding curve.`}
-  progress={bondingCurveProgress}
-  gradientFrom="from-blue-500"
-  gradientTo="to-cyan-400"
-  shadowColor="shadow-blue-500/30"
-/>
+      {!isCurveComplete && (
+        <div className="text-gray-300 text-xs ">
+          there is {(typeof msg === 'number' ? msg.toFixed(2) : '0.00')} SOL in the bonding curve.
+        </div>
+      )}
+      <ProgressBar
+        title="bonding curve progress"
+        // msg={`there is ${(typeof msg === 'number' ? msg.toFixed(2) : '0.00')} SOL in the bonding curve.`}
+        progress={bondingCurveProgress}
+        gradientFrom="from-blue-500"
+        gradientTo="to-cyan-400"
+        shadowColor="shadow-blue-500/30"
+      />
       <ProgressBar
         title="King of the hill progress"
         progress={kothProgress}
@@ -935,7 +928,7 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
         bondingCurve={tokenData.bondingCurve}
         creatorWallet={tokenData.creator?.wallet} // Pass creator wallet if available
       />
-      {tokenData.description && (
+      {/* {tokenData.description && (
         <div className="mt-4">
           <p className="text-gray-300">
             <strong>
@@ -943,8 +936,8 @@ const TokenTradingPanel: React.FC<TokenTradingPanelProps> = ({
             </strong>{" "}
             {tokenData.description}
           </p>
-        </div>
-      )}
+        </div> */}
+      {/* )} */}
     </motion.div>
   );
 };

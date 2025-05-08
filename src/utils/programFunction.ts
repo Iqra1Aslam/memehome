@@ -12,6 +12,10 @@ import {
 } from "@solana/spl-token";
 import { convertFromFloat, convertToFloat } from "./util";
 import BN from "bn.js";
+const KEY = import.meta.env.VITE_PINATA_KEY;
+if (!KEY || typeof KEY !== "string") {
+  throw new Error(" API key is missing or invalid. Please set  in your PINATA_KEY .env file.");
+}
 // import { token } from "@coral-xyz/anchor/dist/cjs/utils";
  
 const L = console.log;
@@ -27,6 +31,8 @@ export type Token = {
 export const uploadImagePinata = async (file: File) => {
   if (file) {
     try {
+    
+      // console.log("PINATA_SECRET_API_KEY :",  KEY);
       const formData = new FormData();
       formData.append("file", file);
  
@@ -36,8 +42,8 @@ export const uploadImagePinata = async (file: File) => {
         data: formData,
         headers: {
           pinata_api_key: "da4de1d13bb5283d5982",
-          pinata_secret_api_key:
-            "36f77290d172dba3b8fca335758984f317b91fa81012a500e49aedbb7304a13d",
+          pinata_secret_api_key: KEY,
+           
           "Content-Type": "multipart/form-data",
         },
       });
@@ -86,51 +92,7 @@ export const [configPda] = PublicKey.findProgramAddressSync(
 );
  
 
-//not in use
-// export const calculateBondingCurveProgress = async (
-//   bId: string,
-//   totalSupply: number // Total token supply (e.g., 800 million)
-// ): Promise<number> => {
-//   try {
-//     // Fetch the bonding curve account data
-//     const bondingCurve = (await program.account.bondingCurve.fetch(
-//       `${bId}`
-//     )) as BondingCurveData;
- 
-//     // Extract the real token reserves and adjust for decimals
-//     const realTokenReserves =
-//       bondingCurve.realTokenReserves.toNumber() / 1_000_000;
-//       L("real token reserves", realTokenReserves);
- 
-//     // Calculate the percentage of tokens distributed
-//     const remainingPercentage = (realTokenReserves / totalSupply) * 100;
- 
-//     // Calculate the percentage of tokens already distributed
-//     const distributedPercentage = 100 - remainingPercentage;
- 
-//     console.log(
-//       `Bonding Curve Distributed Progress: ${distributedPercentage.toFixed(2)}%`
-//     );
-//     return distributedPercentage; // Return the distributed percentage
-//   } catch (error) {
-//     console.error("Error calculating bonding curve progress:", error);
-//     return 0; // Return 0% if there's an error
-//   }
-// };
- 
-// export const KingOfTheHillProgress = async (BID: string): Promise<number> => {
-//   try {
-//     const bondingCurveBalance = await connection.getBalance(
-//       new PublicKey(`${BID}`)
-//     );
-//     const kothProgress = (bondingCurveBalance / 1000000000 / 90) * 100;
-//     return kothProgress;
-//   } catch (error) {
-//     console.error("Error calculating king of the hill progress", error);
-//     return 0;
-//   }
-// };
- 
+
 export const getBondingCurve = (tokenMintPubkey: string) => {
   const tokenPubkey = new PublicKey(tokenMintPubkey);
   const [bondingCurvePda, _] = PublicKey.findProgramAddressSync(
@@ -177,11 +139,15 @@ export const calculateAmountOutBuy = async (
     `${bId}`
   )) as BondingCurveData;
  
-  // Check if the bonding curve is completed
+  // Check if the bonding curve is completedss
   if (bondingCurve.isCompleted) {
     return "Listed on Raydium!";
   }
- 
+  const feePercent = 0.0015; // Fee percent
+  const fee = (adjustedAmount * feePercent) / 100;
+  // console.log(`Fee Lamports: ${fee}`);
+
+  adjustedAmount= adjustedAmount-fee;
   // Calculate the denominator sum which is (y+dy)
   const denominatorSum = reserveLamport + adjustedAmount;
   // Convert to float for division
@@ -203,12 +169,56 @@ export const calculateAmountOutBuy = async (
   return amountOut;
 };
  
+// export const calculateAmountBuy = async (value: number, bId: String) => {
+//   const bondingCurve = (await program.account.bondingCurve.fetch(
+//     `${bId}`
+//   )) as BondingCurveData;
+//   // Minimum allowed input = 1000 lamports = 0.000001 SOL
+//   const MIN_INPUT_SOL = 0.000001;
+  
+//   const virtual_Sol = bondingCurve.virtualSolReserves.toNumber() / 1000000;
+  
+// // Maximum allowed input = 90% of current SOL reserves (to avoid draining the curve)
+// const MAX_INPUT_SOL = virtual_Sol * 0.9;
+//   const virtual_token = bondingCurve.virtualTokenReserves.toNumber() / 1000000;
+//   const amount_out = await calculateAmountOutBuy(
+//     virtual_Sol,
+//     value,
+//     6,
+//     virtual_token,
+//     bId.toString()
+//   );
+//   return amount_out;
+// };
+ 
 export const calculateAmountBuy = async (value: number, bId: String) => {
   const bondingCurve = (await program.account.bondingCurve.fetch(
     `${bId}`
   )) as BondingCurveData;
+
+  // Minimum allowed input = 1000 lamports = 0.000001 SOL
+  const MIN_INPUT_SOL = 0.000001;
+
   const virtual_Sol = bondingCurve.virtualSolReserves.toNumber() / 1000000;
+
+  // Maximum allowed input = 90% of current SOL reserves
+  // const MAX_INPUT_SOL = virtual_Sol * 0.9;
+
+  // console.log("User input (SOL):", value);
+  // console.log("Virtual SOL Reserves:", virtual_Sol);
+  // console.log("Allowed range:", `[${MIN_INPUT_SOL} - ${MAX_INPUT_SOL}]`);
+
+  // Input validation checks
+  if (value < MIN_INPUT_SOL) {
+    throw new Error(`Invalid amount: Must be at least ${MIN_INPUT_SOL} SOL`);
+  }
+
+  // if (value > MAX_INPUT_SOL) {
+  //   throw new Error(`Amount too large: Must not exceed ${MAX_INPUT_SOL.toFixed(6)} SOL`);
+  // }
+
   const virtual_token = bondingCurve.virtualTokenReserves.toNumber() / 1000000;
+  // console.log("Virtual SOL Reserves:", virtual_token);
   const amount_out = await calculateAmountOutBuy(
     virtual_Sol,
     value,
@@ -216,26 +226,21 @@ export const calculateAmountBuy = async (value: number, bId: String) => {
     virtual_token,
     bId.toString()
   );
+
+  // console.log("Calculated token amount out:", amount_out);
+
   return amount_out;
 };
- 
-export const eachTokenPrice = async (bId: string) => {
+
+export const getLimit = async (bId: string) => {
   // Fetch the bonding curve account data
   const bondingCurve = (await program.account.bondingCurve.fetch(
     `${bId}`
   )) as BondingCurveData;
- 
   // Convert virtual reserves to numbers and adjust for decimals
-  const virtual_Sol = bondingCurve.virtualSolReserves.toNumber() / 1000000;
-  const virtual_token = bondingCurve.virtualTokenReserves.toNumber() / 1000000;
   const limit = bondingCurve.isCompleted;
-  console.log("is completed", limit);
- 
-  // Calculate the price of each token
-  const price = virtual_Sol / virtual_token;
- 
-  // Return the price
-  return price;
+  // console.log("is completed", limit); 
+  return limit;
 };
  
 export const calculateAmountOutSell = async (
@@ -254,10 +259,15 @@ export const calculateAmountOutSell = async (
   if (bondingCurve.isCompleted) {
     return "Listed on Raydium!";
   }
- 
+//  console.log("reserve lamport :",reserveLamport);
   const numinator = adjustedAmount * reserveLamport;
+  // console.log("sol :",adjustedAmount);
+  // console.log("tokens :",reserveToken);
+  // console.log("k :",numinator);
   const denominatorSum = reserveToken + adjustedAmount;
+  // console.log("new token reseres :",denominatorSum)
   const amountOut = numinator / denominatorSum;
+  // console.log("Amount out :",amountOut);
   return amountOut;
 };
  
@@ -267,6 +277,7 @@ export const calculateAmountSell = async (value: number, bId: String) => {
   )) as BondingCurveData;
   const virtual_sol = bondingCurve.virtualSolReserves.toNumber() / 1000000;
   const virtual_token = bondingCurve.virtualTokenReserves.toNumber() / 1000000;
+  
   const amount_out = await calculateAmountOutSell(
     virtual_token,
     value,
@@ -326,7 +337,7 @@ export const getBondingCurveTokenBalance = async (
  
     // Extract the real token reserves and convert it to a number
     const realTokenReserves = bondingCurve.realTokenReserves.toNumber();
- 
+    //  console.log("realTokenReserves  :",realTokenReserves);
     // Adjust for decimals if necessary (assuming 6 decimals for tokens)
     const tokenBalance = realTokenReserves / 1_000_000;
  
@@ -371,7 +382,7 @@ export const getRealTokenReserves = async (
  
     // Extract and adjust for decimals
     const realTokenReserves = bondingCurve.realTokenReserves.toNumber() / 1_000_000;
-    console.log("Real Token Reserves:", realTokenReserves);
+    // console.log("Real Token Reserves:", realTokenReserves);
  
     return realTokenReserves;
   } catch (error) {

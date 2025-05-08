@@ -647,13 +647,13 @@ const TradePage: React.FC<TradePageProps> = ({
     }
   };
 
-  useEffect(() => {
-    console.log("TradePage rendered", {
-      activeTab,
-      tokenData: stableTokenData,
-      trades,
-    });
-  });
+  // useEffect(() => {
+  //   console.log("TradePage rendered", {
+  //     activeTab,
+  //     tokenData: stableTokenData.token,
+  //     trades,
+  //   });
+  // });
 
   return (
     <div className="min-h-screen bg-black text-white overflow-x-hidden">
@@ -688,6 +688,7 @@ const TradePage: React.FC<TradePageProps> = ({
           tokenSymbol={stableTokenData.symbol}
           marketCap={stableTokenData.marketCap}
           price={price}
+          token={stableTokenData.token}
          
         />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

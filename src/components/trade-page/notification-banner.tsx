@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import { ably, channel } from "../../utils/ablyClient";
 import axios from "axios";
-
+const URL = import.meta.env.VITE_API_URL;
 const jerkyAnimation = {
   initial: { opacity: 0, y: -20 },
   animate: {
@@ -21,12 +21,24 @@ const jerkyAnimation = {
 };
 
 // Function to format amount to 4 decimal places
-const formatAmount = (amount: string): string => {
-  const [value, unit] = amount.split(" ");
-  const numValue = parseFloat(value);
-  if (isNaN(numValue)) return amount;
-  return `${numValue.toFixed(4)} ${unit}`;
-};
+// const formatAmount = (amount: string): string => {
+//   const [value, unit] = amount.split(" ");
+//   const numValue = parseFloat(value);
+//   if (isNaN(numValue)) return amount;
+//   return `${numValue.toFixed(4)} ${unit}`;
+// };
+function formatAmount(amount: string | number | undefined | null): string {
+  if (!amount || typeof amount !== "string" && typeof amount !== "number") return "";
+
+  const amountStr = typeof amount === "number" ? amount.toFixed(4) : amount;
+  const [integerPart, decimalPart = ""] = amountStr.split(".");
+
+  return (
+    integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",") +
+    (decimalPart ? "." + decimalPart.slice(0, 2) : "")
+  );
+}
+
 
 // Function to parse market cap (handles both string and number)
 const parseMarketCap = (marketCap: string | number): number => {
@@ -53,6 +65,7 @@ interface Notification {
 const NotificationBanner: React.FC = () => {
   const [lastTrade, setLastTrade] = useState<Notification | null>(null);
   const [solPrice, setSolPrice] = useState<number>(0);
+  const [shouldAnimate, setShouldAnimate] = useState(false);
 
   // Fetch SOL price from localStorage
   useEffect(() => {
@@ -64,6 +77,25 @@ const NotificationBanner: React.FC = () => {
     };
     fetchPrice();
   }, []);
+  useEffect(() => {
+    const onNewTrade = (message: any) => {
+      const trade = message.data;
+  
+    
+      setShouldAnimate(true); // Trigger animation
+      console.log("real time trade :",message.data);
+      
+      // Reset animation flag after a short time
+      setTimeout(() => setShouldAnimate(false), 2000);
+    };
+  
+    channel.subscribe("new_trade", onNewTrade);
+
+    return () => {
+      channel.unsubscribe("new_trade", onNewTrade);
+    };
+  }, []);
+  
 
   // Function to save the last trade to localStorage
   const saveLastTradeToLocalStorage = (trade: Notification) => {
@@ -89,7 +121,7 @@ const NotificationBanner: React.FC = () => {
     const fetchTradeSuccesses = async () => {
       try {
         const response = await axios.get(
-          "http://localhost:8000/coin/api/trade-success"
+         `${URL}coin/api/trade-success`
         );
         const tradeSuccesses = response.data.tradeSuccesses || [];
         if (tradeSuccesses.length > 0) {
@@ -123,7 +155,7 @@ const NotificationBanner: React.FC = () => {
   // Set up Ably subscription to update the last trade in real-time
   useEffect(() => {
     const handleTradeSuccess = (message: any) => {
-      console.log("Received trade success message:", message);
+      // console.log("Received trade success message:", message);
       const trade = message.data.tradeSuccess;
       const newTrade: Notification = {
         id: Date.now(),
@@ -157,10 +189,14 @@ const NotificationBanner: React.FC = () => {
 
   return (
     <motion.div
-      key={lastTrade.id}
+      // key={lastTrade.id}
+      // variants={jerkyAnimation}
+      // initial="initial"
+      // animate="animate"
+      key={shouldAnimate ? lastTrade.id : "static"}
       variants={jerkyAnimation}
-      initial="initial"
-      animate="animate"
+      initial={shouldAnimate ? "initial" : false}
+      animate={shouldAnimate ? "animate" : false}
       exit="exit"
       className="max-w-[400px] w-full h-10 bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-sm text-white py-2 px-3 rounded-lg border border-purple-500/40 shadow-lg shadow-purple-500/10 flex-shrink-0 flex items-center"
     >

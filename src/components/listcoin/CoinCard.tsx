@@ -37,16 +37,19 @@ const CoinCard: React.FC<CoinCardProps> = ({
   price,
   isShuffling,
 }) => {
-  const URL = process.env.VITE_API_URL || "http://localhost:8000/";
+  // const URL = process.env.VITE_API_URL;
+  const URL = import.meta.env.VITE_API_URL;
   const [replyCount, setReplyCount] = useState<number>(0);
 
   // Fetch the reply count from localStorage when the component mounts
   useEffect(() => {
     const fetchReplyCount = async () => {
       try {
+        // console.log(`${URL}coin/reply-count/${coin.token}`)
         const response = await axios.get(
           `${URL}coin/reply-count/${coin.token}`
         );
+
         setReplyCount(response.data.replyCount);
       } catch (error) {
         console.error("Error fetching reply count:", error);
@@ -116,7 +119,7 @@ const CoinCard: React.FC<CoinCardProps> = ({
     >
       {/* Left side - Image */}
       <div className="flex">
-        <div className="relative w-24 h-24 flex-shrink-0">
+        <div className="relative w-24 h-24 flex-shrink-0 mt-3">
           <img
             src={coin.imgUrl}
             alt={coin.name}
